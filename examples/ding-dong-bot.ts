@@ -39,55 +39,65 @@ function onLogin (user: Contact) {
 function onLogout (user: Contact) {
   log.info('StarterBot', '%s logout', user)
 }
+// 提取消息中的第一个链接
+function extractFirstLink(txt: string) {
+  const urlRegex = /(https?:\/\/[^?]+)/; // 匹配第一个链接直到问号为止
+  const match = txt.match(urlRegex); // 匹配第一个链接
+  return match ? match[0] : ''; // 如果匹配到链接，则返回链接，否则返回空字符串
+}
 
-async function onMessage (msg: Message) {
+async function onMessage(msg: Message) {
   log.info('StarterBot', msg.toString())
 
+  // 判断收到的消息是否是来自自己，如果是，则不进行处理
+  if (msg.self()) {
+    return;
+  }
   if (msg.text() === 'ding') {
     await msg.say('dong')
+  }
+
+  const txt = msg.text(); // 获取消息文本
+  const link = extractFirstLink(txt); // 提取第一个链接
+  console.log(link);
+
+  // 如果消息中包含链接，则回复消息中的链接
+  if (link) {
+    await msg.say(link); // 回复消息中的第一个链接
   }
 }
 
 const bot = WechatyBuilder.build({
   name: 'ding-dong-bot',
-  /**
-   * You can specific `puppet` and `puppetOptions` here with hard coding:
-   *
+  //  * You can specific `puppet` and `puppetOptions` here with hard coding:
+  //  *
   puppet: 'wechaty-puppet-wechat',
   puppetOptions: {
     uos: true,
-  },
-   */
-  /**
-   * How to set Wechaty Puppet Provider:
-   *
-   *  1. Specify a `puppet` option when instantiating Wechaty. (like `{ puppet: 'wechaty-puppet-whatsapp' }`, see below)
-   *  1. Set the `WECHATY_PUPPET` environment variable to the puppet NPM module name. (like `wechaty-puppet-whatsapp`)
-   *
-   * You can use the following providers locally:
-   *  - wechaty-puppet-wechat (web protocol, no token required)
-   *  - wechaty-puppet-whatsapp (web protocol, no token required)
-   *  - wechaty-puppet-padlocal (pad protocol, token required)
-   *  - etc. see: <https://wechaty.js.org/docs/puppet-providers/>
-   */
-  // puppet: 'wechaty-puppet-whatsapp'
-
-  /**
-   * You can use wechaty puppet provider 'wechaty-puppet-service'
-   *   which can connect to remote Wechaty Puppet Services
-   *   for using more powerful protocol.
-   * Learn more about services (and TOKEN) from https://wechaty.js.org/docs/puppet-services/
-   */
-  // puppet: 'wechaty-puppet-service'
-  // puppetOptions: {
-  //   token: 'xxx',
-  // }
+  }
 })
 
 bot.on('scan',    onScan)
 bot.on('login',   onLogin)
 bot.on('logout',  onLogout)
 bot.on('message', onMessage)
+
+bot.on('friendship', async friendship => {
+  try {
+    switch (friendship.type()) {
+      // 1：收到了对方发来的好友请求。
+      case 1:
+        await friendship.accept()
+        break
+      // 2：通过扫描二维码的方式添加好友。
+      case 2:
+        await friendship.accept()
+        break
+    }
+  } catch (e) {
+    console.error(e)
+  }
+})
 
 bot.start()
   .then(() => log.info('StarterBot', 'Starter Bot Started.'))
